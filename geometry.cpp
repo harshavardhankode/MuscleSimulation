@@ -2,6 +2,7 @@
 
 GLuint shaderProgram;
 
+glm::mat4 view_matrix;
 
 void initBuffersGL(void)
 {
@@ -17,31 +18,28 @@ void initBuffersGL(void)
   shaderProgram = csX75::CreateProgramGL(shaderList);
   glUseProgram( shaderProgram );
 
-  /*
   // getting the attributes from the shader program
   vPosition = glGetAttribLocation( shaderProgram, "vPosition" );
-  vColor = glGetAttribLocation( shaderProgram, "vColor" ); 
+  //vColor = glGetAttribLocation( shaderProgram, "vColor" ); 
   uModelViewMatrix = glGetUniformLocation( shaderProgram, "uModelViewMatrix");
 
-  // Creating the hierarchy:
-  // We are using the original colorcube function to generate the vertices of the cuboid
-  colorcube();
+  //Initializing buffers of the mesh also here
 
-  //note that the buffers are initialized in the respective constructors
- 
-  node1 = new csX75::HNode(NULL,num_vertices,v_positions,v_colors,sizeof(v_positions),sizeof(v_colors));
-  node2 = new csX75::HNode(node1,num_vertices,v_positions,v_colors,sizeof(v_positions),sizeof(v_colors));
-  node2->change_parameters(2.0,0.0,0.0,0.0,0.0,0.0);
-  node3 = new csX75::HNode(node2,num_vertices,v_positions,v_colors,sizeof(v_positions),sizeof(v_colors));
-  node3->change_parameters(2.0,0.0,0.0,0.0,0.0,0.0);
-  root_node = curr_node = node3;
-  */
+  mesh1 = new SimMesh();
+
+  mesh1->ReadTetgenMesh("./test/muscle1.1");
 
 }
 
 void renderGL(void)
 {
   glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+
+  view_matrix = glm::ortho(-2.0, 2.0, -2.0, 2.0, -2.0, 2.0);
+
+  glUniformMatrix4fv(uModelViewMatrix, 1, GL_FALSE, glm::value_ptr(view_matrix));
+
+  mesh1->Render();
 
   /*
   matrixStack.clear();
@@ -67,7 +65,6 @@ void renderGL(void)
 
   matrixStack.push_back(view_matrix);
 
-  node1->render_tree();
   */
 
 }
