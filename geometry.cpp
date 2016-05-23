@@ -2,7 +2,18 @@
 
 GLuint shaderProgram;
 
+//glm::mat4 view_matrix;
+
+glm::mat4 rotation_matrix;
+glm::mat4 projection_matrix;
+glm::mat4 c_rotation_matrix;
+glm::mat4 lookat_matrix;
+
+glm::mat4 model_matrix;
 glm::mat4 view_matrix;
+
+
+glm::mat4 modelview_matrix;
 
 void initBuffersGL(void)
 {
@@ -20,14 +31,14 @@ void initBuffersGL(void)
 
   // getting the attributes from the shader program
   vPosition = glGetAttribLocation( shaderProgram, "vPosition" );
-  //vColor = glGetAttribLocation( shaderProgram, "vColor" ); 
+  vColor = glGetAttribLocation( shaderProgram, "vColor" ); 
   uModelViewMatrix = glGetUniformLocation( shaderProgram, "uModelViewMatrix");
 
   //Initializing buffers of the mesh also here
 
   mesh1 = new SimMesh();
 
-  mesh1->ReadTetgenMesh("./test/muscle1.1");
+  mesh1->ReadTetgenMesh("./test/muscle1.2");
 
 }
 
@@ -35,13 +46,12 @@ void renderGL(void)
 {
   glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
-  view_matrix = glm::ortho(-2.0, 2.0, -2.0, 2.0, -2.0, 2.0);
+  //view_matrix = glm::ortho(-1.0, 3.0, -2.0, 2.0, -2.0, 2.0);
 
-  glUniformMatrix4fv(uModelViewMatrix, 1, GL_FALSE, glm::value_ptr(view_matrix));
+  //glUniformMatrix4fv(uModelViewMatrix, 1, GL_FALSE, glm::value_ptr(view_matrix));
 
-  mesh1->Render();
 
-  /*
+  
   matrixStack.clear();
 
   //Creating the lookat and the up vectors for the camera
@@ -59,13 +69,15 @@ void renderGL(void)
     projection_matrix = glm::frustum(-7.0, 7.0, -7.0, 7.0, 1.0, 7.0);
     //projection_matrix = glm::perspective(glm::radians(90.0),1.0,0.1,5.0);
   else
-    projection_matrix = glm::ortho(-7.0, 7.0, -7.0, 7.0, -5.0, 5.0);
+    projection_matrix = glm::ortho(-1.0, 3.0, -2.0, 2.0, 0.1, 10.0);
 
   view_matrix = projection_matrix*lookat_matrix;
 
   matrixStack.push_back(view_matrix);
 
-  */
+  glUniformMatrix4fv(uModelViewMatrix, 1, GL_FALSE, glm::value_ptr(view_matrix));
+
+  mesh1->Render();
 
 }
 
@@ -129,10 +141,13 @@ int main(int argc, char** argv)
   initGL();
   initBuffersGL();
 
+  mesh1->CalculateDeformationGradients();
+  mesh1->CalculateStresses();
+  mesh1->ComputeForces();
+
   // Loop until the user closes the window
   while (glfwWindowShouldClose(window) == 0)
     {
-       
       // Render here
       renderGL();
 
@@ -143,6 +158,7 @@ int main(int argc, char** argv)
       glfwPollEvents();
     }
   
+
   glfwTerminate();
   return 0;
 }
