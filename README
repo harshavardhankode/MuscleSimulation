@@ -1,0 +1,15 @@
+
+I. References to the papers:
+
+The above talk about the constitutive model 
+
+1) http://physbam.stanford.edu/~fedkiw/papers/stanford2004-06.pdf
+2) https://www.math.ucla.edu/~jteran/papers/TSNF03.pdf
+
+This discusses how to robustly handle inverting elements
+
+3)https://www.math.ucla.edu/~jteran/papers/ITF04.pdf
+
+II. The code :
+
+All the simulation is written as the functions of SimMesh class, found in the mesh.hpp & mesh.cpp files. The code for handling inversion is in the CalculateStresses() function
