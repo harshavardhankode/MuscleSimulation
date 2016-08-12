@@ -34,21 +34,7 @@ glm::mat4* multiply_stack(std::vector<glm::mat4> matStack){
 	return mult;
 }
 
-glm::vec4 red_blue(float value, float lo, float hi){
-	float f;
-	//cout<<f<<endl;
-	if(value<lo){
-		f = 0.0;
-	}
-	else if (value>hi){
-		f = 1.0;
-	}
-	else{
-		f = (value-lo)/(hi - lo);
-	}
-	cout<<f<<endl;
-	return glm::vec4(f,1.0-f,0.0,1.0);
-}
+
 
 SimMesh* mesh1;
 

@@ -9,7 +9,9 @@
 #include "glm/mat4x4.hpp"
 #include "glm/gtc/matrix_transform.hpp"
 #include "glm/gtc/type_ptr.hpp"
+#include "glm/gtx/string_cast.hpp"
 #include "Eigen/Dense"
+#include "Eigen/SVD"
 #include <math.h>
 
 
@@ -72,5 +74,7 @@ class SimMesh{
 		void CalculateStresses();
 
 		void ComputeForces();		
+
+		void TimeStep(float dT);
 
 };

@@ -141,21 +141,25 @@ int main(int argc, char** argv)
   initGL();
   initBuffersGL();
 
-  mesh1->CalculateDeformationGradients();
-  mesh1->CalculateStresses();
-  mesh1->ComputeForces();
 
+  int temp;
   // Loop until the user closes the window
   while (glfwWindowShouldClose(window) == 0)
     {
-      // Render here
-      renderGL();
 
+      mesh1->CalculateDeformationGradients();
+      mesh1->CalculateStresses();
+      mesh1->ComputeForces();
+      // Render here
+      mesh1->TimeStep(0.001);
+      renderGL();
+      //sleep(1);
+      
       // Swap front and back buffers
       glfwSwapBuffers(window);
-      
       // Poll for and process events
       glfwPollEvents();
+
     }
   
 
