@@ -13,3 +13,5 @@ This discusses how to robustly handle inverting elements
 II. The code :
 
 All the simulation is written as the functions of SimMesh class, found in the mesh.hpp & mesh.cpp files. The code for handling inversion is in the CalculateStresses() function
+
+To run the code, you need to have GLM and Eigen lobraries in the src folder, and compile using make to generate the executable.
