@@ -8,8 +8,8 @@ LDFLAGS=-L/usr/local/lib
 CPPFLAGS= -g -I/usr/local/include -I./ 
 
 BIN=geometry
-SRCS=geometry.cpp gl_framework.cpp shader_util.cpp mesh.cpp
-INCLUDES=gl_framework.hpp shader_util.hpp geometry.hpp mesh.hpp
+SRCS=geometry.cpp gl_framework.cpp shader_util.cpp mesh.cpp arm.cpp
+INCLUDES=gl_framework.hpp shader_util.hpp geometry.hpp mesh.hpp arm.hpp
 
 all: $(BIN)
 

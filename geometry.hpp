@@ -4,13 +4,16 @@
 #include "glm/vec4.hpp"
 #include "glm/mat4x4.hpp"
 #include "glm/gtc/matrix_transform.hpp"
-#include "glm/gtc/type_ptr.hpp"
-#include "mesh.hpp"
-
-//Globals in this file
 
 #ifndef _GLOBALS_
 #define _GLOBALS_
+
+#include "glm/gtc/type_ptr.hpp"
+#include "mesh.hpp"
+#include "arm.hpp"
+//Globals in this file
+
+
 
 
 GLuint vPosition,vColor,uModelViewMatrix;
@@ -21,21 +24,15 @@ GLfloat c_xrot=0.0,c_yrot=0.0,c_zrot=0.0;
 
 bool enable_perspective=false;
 bool render_wireframe = false;
+bool show_stresses=false;
 std::vector<glm::mat4> matrixStack;
-
-glm::mat4* multiply_stack(std::vector<glm::mat4> matStack){
-	glm::mat4* mult;
-	mult = new glm::mat4(1.0f);
-
-	for(int i=0;i<matStack.size();i++){
-		*mult = (*mult) * matStack[i];
-	}	
-
-	return mult;
-}
+int iteration=0;
 
 
 
-SimMesh* mesh1;
+
+
+SimMesh* mesh1,*mesh2;
+Joint* joint1;
 
 #endif

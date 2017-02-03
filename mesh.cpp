@@ -3,8 +3,20 @@
 
 
 extern GLuint vPosition,vColor,uModelViewMatrix;
-//extern std::vector<glm::mat4> matrixStack;
-extern bool render_wireframe;
+extern std::vector<glm::mat4> matrixStack;
+extern bool render_wireframe,show_stresses;
+//extern int iteration;
+
+glm::mat4* multiply_stack(std::vector<glm::mat4> matStack){
+	glm::mat4* mult;
+	mult = new glm::mat4(1.0f);
+
+	for(int i=0;i<matStack.size();i++){
+		*mult = (*mult) * matStack[i];
+	}	
+
+	return mult;
+}
 
 glm::vec4 red_blue(float value, float lo, float hi){
 	float f;
@@ -31,6 +43,13 @@ SimMesh::SimMesh(){
 	glGenVertexArrays (1, &vao);
 	//Ask GL for aVertex Buffer Object (vbo)
 	glGenBuffers (1, &vbo);
+
+	iteration = 0;
+	act = 1;  
+	origin_vertex = 0;
+	insertion_vertex = 17;
+	Tmax =80000;
+	l=l_init=1.0;
 
 }
 
@@ -64,6 +83,7 @@ void SimMesh::ReadTetgenMesh(string mesh_name){
 				temp_ss >> counter >> vertex.x >> vertex.y >> vertex.z;
 				vertex.w = 1;
 				vertices.push_back(vertex);
+				vertex_stress.push_back(0);
 			}
 
 		}
@@ -168,6 +188,24 @@ void SimMesh::ReadTetgenMesh(string mesh_name){
 
 }
 
+
+void SimMesh::Equilibriate(float threshold, float dT){
+
+
+
+	do{
+      CalculateDeformationGradients();
+      CalculateStresses();
+      ComputeForces();
+      TimeStep(dT);
+      iteration++;
+	}while(max_move > threshold);
+
+	//cout<<"Equilibriated at iteration " <<iteration<<endl;
+
+
+}
+
 void SimMesh::Render(){
 
 
@@ -184,12 +222,21 @@ void SimMesh::Render(){
 	}
 
 	//setting up colour
+	if(show_stresses==false){
+		for( int i=0; i< faces.size() ; i++){
+			render_buffer.push_back(red_blue(forces[faces[i].x].norm(),500,2000));
+			render_buffer.push_back(red_blue(forces[faces[i].y].norm(),500,2000));
+			render_buffer.push_back(red_blue(forces[faces[i].z].norm(),500,2000));
 
-	for( int i=0; i< faces.size() ; i++){
-		render_buffer.push_back(red_blue(forces[faces[i].x].norm(),500,2000));
-		render_buffer.push_back(red_blue(forces[faces[i].y].norm(),500,2000));
-		render_buffer.push_back(red_blue(forces[faces[i].z].norm(),500,2000));
+		}
+	}
+	else{
+		for( int i=0; i< faces.size() ; i++){
+			render_buffer.push_back(red_blue(vertex_stress[faces[i].x],100000,500000));
+			render_buffer.push_back(red_blue(vertex_stress[faces[i].y],100000,500000));
+			render_buffer.push_back(red_blue(vertex_stress[faces[i].z],100000,500000));
 
+		}
 	}
 
 	// setup the vbo and vao;
@@ -210,9 +257,9 @@ void SimMesh::Render(){
 	glVertexAttribPointer( vColor, 4, GL_FLOAT, GL_FALSE, 0, BUFFER_OFFSET(offset) );
 
 
-	//glm::mat4* ms_mult = multiply_stack(matrixStack);
+	glm::mat4* ms_mult = multiply_stack(matrixStack);
 
-	//glUniformMatrix4fv(uModelViewMatrix, 1, GL_FALSE, glm::value_ptr(*ms_mult));
+	glUniformMatrix4fv(uModelViewMatrix, 1, GL_FALSE, glm::value_ptr(*ms_mult));
 
 	glBindVertexArray (vao);
 
@@ -231,7 +278,7 @@ void SimMesh::Render(){
 
 void SimMesh::RenderWireframe(){
 
-
+	/*
 	//cout<<vertices.size()<<endl;
 	// Add each vertex of faces in the order into the render buffer
 	render_buffer.clear();
@@ -277,7 +324,7 @@ void SimMesh::RenderWireframe(){
  		glDrawArrays(GL_LINE_LOOP, i, 3);
 
 	// for memory; 
-	// delete ms_mult;
+	// delete ms_mult;*/
 }
 
 void SimMesh::CalculateDeformationGradients(){
@@ -289,21 +336,21 @@ void SimMesh::CalculateDeformationGradients(){
 		Eigen::Matrix3f TempF;
 
 		glm::vec4 edge1 = curr_vertices[sim_tets[i]->vertices[1]] -curr_vertices[sim_tets[i]->vertices[0]];
-		glm::vec4 edge2 = curr_vertices[sim_tets[i]->vertices[2]] -curr_vertices[sim_tets[i]->vertices[0]];
-		glm::vec4 edge3 = curr_vertices[sim_tets[i]->vertices[3]] -curr_vertices[sim_tets[i]->vertices[0]];
+		glm::vec4 edge2 = curr_vertices[sim_tets[i]->vertices[3]] -curr_vertices[sim_tets[i]->vertices[0]];
+		glm::vec4 edge3 = curr_vertices[sim_tets[i]->vertices[2]] -curr_vertices[sim_tets[i]->vertices[0]];
 		
 		Dm <<edge1.x,edge2.x,edge3.x,edge1.y,edge2.y,edge3.y,edge1.z,edge2.z,edge3.z;
 
-		edge1 = final_vertices[sim_tets[i]->vertices[1]] -final_vertices[sim_tets[i]->vertices[0]];
-		edge2 =	final_vertices[sim_tets[i]->vertices[2]] -final_vertices[sim_tets[i]->vertices[0]];
-		edge3 = final_vertices[sim_tets[i]->vertices[3]] -final_vertices[sim_tets[i]->vertices[0]];
+		edge1 = vertices[sim_tets[i]->vertices[1]] -vertices[sim_tets[i]->vertices[0]];
+		edge2 =	vertices[sim_tets[i]->vertices[3]] -vertices[sim_tets[i]->vertices[0]];
+		edge3 = vertices[sim_tets[i]->vertices[2]] -vertices[sim_tets[i]->vertices[0]];
 
 		Ds <<edge1.x,edge2.x,edge3.x,edge1.y,edge2.y,edge3.y,edge1.z,edge2.z,edge3.z;
 
 
 		//Checking for inversion
 		//sim_tets[i]->F = Ds*Dm.inverse();
-		TempF = Ds*Dm.inverse();
+		TempF = Ds*(Dm.inverse());
 		// if(TempF.determinant() < 0){ //= 0 case?
 		// 	Eigen::JacobiSVD<Eigen::Matrix3f> svd(TempF, Eigen::ComputeFullU | Eigen::ComputeFullV);
 			
@@ -332,11 +379,12 @@ void SimMesh::CalculateDeformationGradients(){
 
 void SimMesh::CalculateStresses(){
 
-	Eigen::Vector3f fm ; // fiber direction 
+	Eigen::Vector3f fm,fmR ; // fiber direction 
 	fm<<1,0,0; // initialised to x direction, teporary
+	fmR<<1,0,0;
 	// TODO later add fiber direction in each tet
 
-	Eigen::Matrix3f F,F_orig,P,P_r;
+	Eigen::Matrix3f F,F_orig,P,P_r,P_r1,P_r2,P_r3,P_r4,P_r123;
 	Eigen::Matrix3f C; // Cauchy stress
 	Eigen::Matrix3f I1;
 	float Jc,Jcc,w1,w2,w12,i1,lambda,p,pf;
@@ -345,8 +393,9 @@ void SimMesh::CalculateStresses(){
 	float mat_c2 = 10000; // (muscle and tendon),
 	float K = 60000; // (muscle)
 	//float K = 80000;// (tendon)
-	float T = 80000;
+	float T = Tmax*act*(max(1.0-(abs(l-l_init)*0.5),0.0));//80000;
 
+	// Main loop for each tetrahedron
 	for(int i=0;i<num_tets;i++){
 
 		F_orig = sim_tets[i]->F;
@@ -360,66 +409,174 @@ void SimMesh::CalculateStresses(){
 			// cout << "Its singular values are:" << endl << Sv << endl;
 			// cout << "U matrix:" << endl << U << endl << U.determinant() << endl;
 			// cout << "V matrix:" << endl << V << endl << V.determinant() << endl;
+			for(int k=0;k<3;k++){
+				if(Sv(k)<0)
+					Sv(k) = -Sv(k);
+			}
 			F = Sv.asDiagonal();
+
 
 			bool Vflag = false; // Represents if V has been negated i.e one column inverted
 			// Making V a rotation
 			if(V.determinant() < 0){
 				V.col(0) = -V.col(0);
 				Vflag = true;
-				cout << "V matrix inverted to make it rotation:" << endl << V << endl << V.determinant() << endl;
-				cout<<"Dets of F and U:" << F.determinant() << " and " <<U.determinant()<<endl;
+				//cout << "V matrix inverted to make it rotation:" << endl << V << endl << V.determinant() << endl;
 			}
 
 			// Using the method given in the paper to find U
-			//U = F_orig* V * F.inverse();
-
+			
+			U = F_orig* V * F.inverse();
 			// Inverting corresponding column in U and corresponding column in F, but maintaining sign
-			if(U.determinant() < 0 & !Vflag){
+			if(U.determinant() < 0 ){
 
 				int minC;
 				Sv.minCoeff(&minC);
 				Sv[minC]= - Sv[minC];
-				F = Sv.asDiagonal();
-				cout << "F matrix in the rotated space, after invering the least element:" << endl << F << endl;
+				
+				//cout << "F matrix in the rotated space, after invering the least element:" << endl << F << endl;
 
 				U.col(minC) = -U.col(minC);
-				cout << "U matrix inverted to make it rotation:" << endl << U << endl << U.determinant() << endl;
+				//cout << "U matrix inverted to make it rotation:" << endl << U << endl << U.determinant() << endl;
 
 			}
+			//cout<<"Dets of F and U:" << F.determinant() << " and " <<U.determinant()<<endl;
 
-			if(U.determinant() < 0 & Vflag){
-				U.col(0) = -U.col(0);
-			}
+			// if(U.determinant() < 0 && F.determinant() > 0){
+			// 	U.col(0) = -U.col(0);
+			// }
 			//}
+		
+			F = Sv.asDiagonal();
 
-
+			float threshold = 0.2;
 			Jc = F.determinant();
 
 			if(Jc < 0){
-				cout<<"Invert"<<endl;
+				cout<<"Invert at iteration "<<iteration<<", Tet:"<<i<<endl;
+				//cout << "F matrix in the rotated space" << endl << F << endl;
+				// Thresholding the deformation gradient to handle inversion
+				for(int i=0;i<3;i++){
+					if(F(i,i) < threshold){
+						F(i,i) = threshold;
+					}
+				}
+				
+				cout << "F matrix after Thresholding" << endl << F << endl;
+
 			}
 
-			Jc = 1.0/pow(Jc,(1.0/3));
+			Jc = F.determinant();
 			Jcc = pow(Jc,2);
+
+
+			/*if(Jc < 0){
+				Jc = -(1.0/pow(-Jc,(1.0/3)));
+			}
+			else{
+				Jc = (1.0/pow(Jc,(1.0/3)));
+			}*/
+
+			Jcc = (1.0/pow(Jcc,(1.0/3)));
+
+			
+			Jcc = 1.0/Jcc;
+
+			fmR = V.transpose()*fm; 
 			C = F.transpose() * F;
 			I1 = Jcc*C;
 			i1 = I1.trace();
-			lambda = sqrt(fm.transpose() * C * fm);
+			lambda = sqrt(fmR.transpose() * C * fmR);
 
 			w1 = 4*Jcc*mat_c1;
 			w2 = 4*pow(Jcc,2)*mat_c2;
 			w12 = w1 + i1*w2;
 
-			p = K * log(Jc); // Jc / Jcc
+
+			p = K * log(Jcc); // Jc / Jcc
 			pf = (1.0/3.0)*(w12*C.trace() - w2*((C*C).trace()) + T*pow(lambda,2));
 
-			P_r = w12*F - w2*(F*F*F) + (p - pf)*(F.inverse()) + 4*Jcc*T*(F*fm)*fm.transpose();
+			//cout<<"p:"<<p<<" pf:"<<pf<<endl;
+
+			if(F.determinant() < 0){
+				cout<<"w1: "<<w1<<endl;
+			}
+
+			//cout<<(1.0/3.0)*w12*C.trace() - w2*((C*C).trace())<<" "<<T*pow(lambda,2)<<" \n";
+			P_r1 = w12*(F) ;
+			P_r2 = - w2*(F*F*F);
+			P_r3 = (p - pf)*(F.inverse());
+			P_r4 = 4*Jcc*T*(F*fmR)*fmR.transpose();
+
+			int Plo = -99999,Phi = 99999;
+
+			P_r123 = P_r1+P_r2+P_r3;
+
+			for(int j=0;j<3;j++){
+				if(P_r123(j,j) < Plo){
+					P_r123(j,j) = Plo;
+				}
+				if(P_r123(j,j) > Phi){
+					P_r123(j,j) = Phi;
+				}
+			}
+
+			if(Jc < 0){
+				for(int i=0;i<3;i++){
+					P_r4(i,0) = 0;
+					P_r4(i,1) = 0;
+					P_r4(i,2) = 0;
+				}
+			}
+
+			P_r = P_r123+ P_r4;
+
+			/*if(vertices[i].x < 0.2 || vertices[i].x >1.8){
+				
+			}
+			else{
+				P_r = P_r123+ P_r4;
+			}*/
+
+
+			for(int j=0;j<3;j++){
+				for(int k=0;k<3;k++){
+					if(isnan(P_r1(k,j))){
+						cout<<"r1 (" << k<<","<<j<<") is NaN at iteration "<<iteration<<", Tet:"<<i<<endl;
+						
+						//exit(0);
+					}
+					if(isnan(P_r2(k,j))){
+						cout<<"r2 (" << k<<","<<j<<") is NaN at iteration "<<iteration<<", Tet:"<<i<<endl;
+						
+						//exit(0);
+					}
+					if(isnan(P_r3(k,j))){
+						cout<<"r3 (" << k<<","<<j<<") is NaN at iteration "<<iteration<<", Tet:"<<i<<endl;
+						
+						//exit(0);
+					}
+					if(isnan(P_r4(k,j))){
+						cout<<"r4 (" << k<<","<<j<<") is NaN at iteration "<<iteration<<", Tet:"<<i<<endl;
+						
+						//exit(0);
+					}										
+				}
+			}
+
+
+
+
 
 			P = U * P_r * V.transpose();
 
+			//cout << "P in rotated space and p1, p2 " << endl << P_r <<endl<<P_r1 <<endl<<P_r2<< endl;
+
+
 			sim_tets[i]->P = P;
-			//std::cout<<P<<endl;
+
+
+			//std::cout<<P<<endl;*/
 		}
 		else{
 
@@ -446,7 +603,7 @@ void SimMesh::CalculateStresses(){
 
 			P = w12*F - w2*(F*F*F) + (p - pf)*(F.inverse()) + 4*Jcc*T*(F*fm)*fm.transpose();
 			sim_tets[i]->P = P;
-
+			
 		}
 	}
 }
@@ -458,28 +615,46 @@ void SimMesh::ComputeForces(){
 		Eigen::Vector3f a;
 		a<<0,0,0;
 		forces.push_back(a);
+		vertex_stress[i]=0;
 	}
 	tet_t* curr_tet;
 	
+	Eigen::Matrix3f curr_P;
 	for(int i=0;i<num_tets;i++){
 
 		curr_tet = sim_tets[i];
+		curr_P = curr_tet->P;
 		int curr_vertex;
 		for(int j=0;j<4;j++){
 
 			curr_vertex = curr_tet->vertices[j];
-			forces[curr_vertex]-=(curr_tet->P)*(curr_tet->g[j]);
-
+			forces[curr_vertex]-=(curr_P)*(curr_tet->g[j]);
+			vertex_stress[curr_vertex]+=0.25*(curr_P(0,0)+curr_P(1,1)+curr_P(2,2));
+			//cout<<"iteration "<<iteration<<"vertex stress"<< i<<"th vertex:"<<vertex_stress[i]<<endl;
+			//forces=
 		}
 
 	}
 
-	// for(int i=0;i<num_vertices;i++){
-	// 	std::cout<<forces[i].norm()<<endl;
-	// }
+	for(int i=0;i<num_vertices;i++){
+		//std::cout<<forces[i].norm()<<endl;
+
+	}
 
 }
 
+
+void SimMesh::MoveInsertion(glm::vec4 t){
+
+	for(int i=0;i<num_vertices;i++){
+		if(vertices[i].x >1.8){ //condition for insertion vertices
+			curr_vertices[i]+=t;
+		}
+
+	}
+	l+=t.x;
+
+}
 
 
 
@@ -487,17 +662,41 @@ void SimMesh::TimeStep(float dT){
 
 	// 1 and 18 are clamped = 0 & 17 in the array
 	glm::vec4 curr_force;
+	avg_move = 0;
+	max_move=0;
+	float move;
 	for(int i=0;i<num_vertices;i++){
-
-		if(i==0 || i==17){
-			continue;
+		//if(i == 0 || i==17){
+		if(vertices[i].x < 0.2 || vertices[i].x >1.8){
+			// if(iteration==0){
+			// 	curr_vertices[i].x +=0.80;
+				
+			// }
+		 	continue;
 		}
-		curr_force = glm::vec4(forces[i][0],forces[i][1],forces[i][2],1.0);
+		curr_force = glm::vec4(forces[i][0],forces[i][1],forces[i][2],0.0);
 		curr_vertices[i] = curr_vertices[i] + curr_force*dT*dT*1.0f; //Later implement the mass here
-		// if(i==0){
-
-		// 	std::cout<<glm::to_string(curr_force*dT*dT*1.0f)<<endl;
+		move = glm::length(curr_force*dT*dT*1.0f);
+		avg_move+=move;
+		if(max_move < move)
+			max_move = move;
+		// if(i==0 && iteration == 0){
+		// 	curr_vertices[i].x +=0.20;
+		// 	//std::cout<<glm::to_string(curr_force*dT*dT*1.0f)<<endl;
 		// }
 
 	}
+	avg_move=avg_move/num_vertices;
+}
+
+void SimMesh::SetAct(float a){
+	act = a;
+}
+void SimMesh::SetLen(float a_l){
+	l = a_l;
+}
+void SimMesh::SetTmax(float a_Tmax){
+
+	Tmax = a_Tmax;
+
 }

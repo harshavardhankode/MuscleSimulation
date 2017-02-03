@@ -37,8 +37,15 @@ void initBuffersGL(void)
   //Initializing buffers of the mesh also here
 
   mesh1 = new SimMesh();
-
+  mesh2 = new SimMesh();
   mesh1->ReadTetgenMesh("./test/muscle1.2");
+  mesh2->ReadTetgenMesh("./test/muscle1.2");
+
+  joint1 = new Joint(90,1,1);
+  joint1->AddMuscle(mesh1,0.1,0.2,1000,glm::vec3(0.4,0.4,0.4));
+  joint1->AddMuscle(mesh2,0.8,0.8,500,glm::vec3(0.4,0.4,0.4));
+  //joint1
+
 
 }
 
@@ -75,9 +82,13 @@ void renderGL(void)
 
   matrixStack.push_back(view_matrix);
 
-  glUniformMatrix4fv(uModelViewMatrix, 1, GL_FALSE, glm::value_ptr(view_matrix));
+  //glUniformMatrix4fv(uModelViewMatrix, 1, GL_FALSE, glm::value_ptr(view_matrix));
 
-  mesh1->Render();
+  //matrixStack.push_back(glm::rotate(glm::mat4(1.0f),(float)glm::radians(90.0), glm::vec3(0.0f,0.0f,-1.0f)) );
+  //matrixStack.push_back(glm::translate(glm::mat4(1.0f), glm::vec3(0.0f,2.0f,0.0f)));
+
+  //mesh1->Render();
+  joint1->Render();
 
 }
 
@@ -143,15 +154,60 @@ int main(int argc, char** argv)
 
 
   int temp;
+  bool incflag=true;
+  temp = 0;
+  int act = 0;
+  /*for(int wt=1;wt<178;wt++){
+
+    joint1->IncAngleDegrees(1);
+    joint1->CalculateActivations();
+  }*/
+  
+  //mesh1->SetAct(0.5);
+
   // Loop until the user closes the window
   while (glfwWindowShouldClose(window) == 0)
     {
 
-      mesh1->CalculateDeformationGradients();
-      mesh1->CalculateStresses();
-      mesh1->ComputeForces();
-      // Render here
-      mesh1->TimeStep(0.001);
+      //mesh1->Equilibriate(0.0005,0.001);
+      //mesh1->Equilibriate(1,0.001);
+      joint1->Equilibriate();
+
+      // if(incflag){
+      //   mesh1->MoveInsertion(glm::vec4(0.05,0,0,0));
+      //   temp++;
+      //   if(temp>10){
+      //     incflag=false;
+      //   }
+      // } else {
+      //   mesh1->MoveInsertion(glm::vec4(-0.05,0,0,0));
+      //   temp--;
+      //   if(temp<0){
+      //     incflag=true;
+      //   }
+      // }
+
+      
+      // if(incflag){
+      //   mesh1->SetAct(act/10.0);
+      //   act++;
+      //   if(act>=10){
+      //     incflag=false;
+      //   }
+      // } else {
+      //   mesh1->SetAct(act/10.0);
+      //   act--;
+      //   if(act<=0){
+      //     incflag=true;
+      //   }
+      // }
+
+      // mesh1->CalculateDeformationGradients();
+      // mesh1->CalculateStresses();
+      // mesh1->ComputeForces();
+      // // Render here
+      // mesh1->TimeStep(0.001);
+      // iteration++;
       renderGL();
       //sleep(1);
       

@@ -1,3 +1,6 @@
+#ifndef _MESH_HPP_
+#define _MESH_HPP_
+
 #include <string>
 #include <iostream>
 #include <fstream>
@@ -13,9 +16,10 @@
 #include "Eigen/Dense"
 #include "Eigen/SVD"
 #include <math.h>
-
+#include <algorithm> 
 
 using namespace std;
+
 
 struct tet_t{
 
@@ -47,6 +51,7 @@ class SimMesh{
 	std::vector< glm::vec4 > vertices;
 	std::vector< glm::vec4 > curr_vertices;
 	std::vector< glm::vec4 > final_vertices;
+	std::vector< float > vertex_stress;
 
 	std::vector< glm::vec3 > faces;
 	std::vector< glm::vec4 > tets;
@@ -57,7 +62,14 @@ class SimMesh{
 
 	std::vector< glm::vec4 > render_buffer;
 
+	int origin_vertex;
+	int insertion_vertex;
 
+	float act,l,Tmax,l_init; //activation,rest length, max active stress;
+
+	float avg_move,max_move;
+
+	int iteration;
 	public:
 		SimMesh();
 
@@ -77,4 +89,16 @@ class SimMesh{
 
 		void TimeStep(float dT);
 
+		void MoveInsertion(glm::vec4 t);
+
+		void Equilibriate(float threshold, float dT);
+
+		void SetAct(float a);
+		void SetLen(float a_l);
+		void SetTmax(float a_Tmax);
+
 };
+
+glm::mat4* multiply_stack(std::vector<glm::mat4> matStack);
+
+#endif

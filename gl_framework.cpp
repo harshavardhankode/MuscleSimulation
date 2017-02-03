@@ -1,7 +1,9 @@
 #include "gl_framework.hpp"
+#include "arm.hpp"
 
 extern GLfloat c_xrot,c_yrot,c_zrot;
-extern bool enable_perspective,render_wireframe;
+extern bool enable_perspective,render_wireframe,show_stresses;
+extern Joint* joint1;
 
 //! Initialize GL State
 void initGL(void)
@@ -36,20 +38,28 @@ void key_callback(GLFWwindow* window, int key, int scancode, int action, int mod
   if (key == GLFW_KEY_ESCAPE && action == GLFW_PRESS)
     glfwSetWindowShouldClose(window, GL_TRUE);
   else if (key == GLFW_KEY_P && action == GLFW_PRESS)
-    enable_perspective = !enable_perspective;   
-  else if (key == GLFW_KEY_A  && action == GLFW_PRESS)
+    show_stresses = !show_stresses;   
+  else if (key == GLFW_KEY_A )
     c_yrot -= 1.0;
-  else if (key == GLFW_KEY_D  && action == GLFW_PRESS)
+  else if (key == GLFW_KEY_D )
     c_yrot += 1.0;
-  else if (key == GLFW_KEY_W  && action == GLFW_PRESS)
+  else if (key == GLFW_KEY_W )
     c_xrot -= 1.0;
-  else if (key == GLFW_KEY_S  && action == GLFW_PRESS)
+  else if (key == GLFW_KEY_S )
     c_xrot += 1.0;        
-  else if (key == GLFW_KEY_Q  && action == GLFW_PRESS)
+  else if (key == GLFW_KEY_Q )
     c_zrot -= 1.0;
-  else if (key == GLFW_KEY_E  && action == GLFW_PRESS)
+  else if (key == GLFW_KEY_E )
     c_zrot += 1.0;   
-  else if (key == GLFW_KEY_O  && action == GLFW_PRESS)
+  else if (key == GLFW_KEY_9 && action == GLFW_PRESS)
+    joint1->IncWeight(-5); 
+  else if (key == GLFW_KEY_0 && action == GLFW_PRESS)
+    joint1->IncWeight(5);
+  else if (key == GLFW_KEY_7 )
+    joint1->IncAngleDegrees(-1);
+  else if (key == GLFW_KEY_8 )
+    joint1->IncAngleDegrees(1); 
+  else if (key == GLFW_KEY_O && action == GLFW_PRESS)
     render_wireframe = !render_wireframe; 
 }
 
